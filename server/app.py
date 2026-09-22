@@ -5,6 +5,7 @@ import gc  # 匯入垃圾回收機制
 import torch
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # 🌟 救命仙丹：強制 PyTorch 只能用單一執行緒，防止 0.1 vCPU 卡死與記憶體暴增
 torch.set_num_threads(1)
@@ -28,14 +29,21 @@ import pandas as pd
 from pitcher_arsenal_extractor import extract_pitcher_arsenal, get_pitch_physics
 
 app = Flask(__name__)
-# 🛡️ 防線一：嚴格限制 CORS 白名單
-# 把剛才日誌裡出現的您的真實 GitHub Pages 網址填進去
+
+# 🌟 補回 Render 反向代理修復，確保限流功能可以抓到真實訪客 IP
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+# 🛡️ 防線一：正確的 CORS 白名單
+# 注意：Origin 只能是「通訊協定 + 網域 + Port」，不能有後面的路徑！
+# 加入了 5500 port 讓您的 VS Code Live Server 可以順利連線
 ALLOWED_ORIGINS = [
-    "https://iquan-gaspard.github.io/baseball_web_game/client",  # 您的正式環境前端
-    "http://127.0.0.1:5000",            # 本地開發測試
+    "https://iquan-gaspard.github.io",  # GitHub Pages 正式環境
+    "http://127.0.0.1:5500",            # VS Code 本地 Live Server (預設)
+    "http://localhost:5500",
+    "http://127.0.0.1:5501",            # 🌟 新增：VS Code 本地 Live Server (分身)
+    "http://localhost:5501",
+    "http://127.0.0.1:5000",
     "http://localhost:5000"
 ]
-
 CORS(app, resources={
     r"/api/*": {"origins": ALLOWED_ORIGINS}
 })
@@ -44,9 +52,16 @@ CORS(app, resources={
 limiter = Limiter(
     get_remote_address,
     app=app,
-    storage_uri="memory://", # 免費版直接存在記憶體即可
-    default_limits=["500 per day", "30 per minute"] # 預設限制：每天最多 500 次，每分鐘最多 30 次
+    storage_uri="memory://",
+    default_limits=["500 per day", "30 per minute"],
+    # 🌟 必須加入這行：放行瀏覽器的 CORS 預檢請求 (OPTIONS)
+    default_limits_exempt_when=lambda: request.method == 'OPTIONS' 
 )
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify(error="rate limit exceeded", message=str(e.description)), 429
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class BaseballTransformerSingleTask(nn.Module):
