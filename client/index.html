@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pitching Counterfactual Lab | 雙引擎配球模擬器</title>
+    <!-- 確保你有引入同資料夾下的 style.css -->
+    <link rel="stylesheet" href="style.css">
+    <!-- 引入 Tom Select 的樣式與核心程式碼 -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <strong style="font-size:18px;">選擇打席：</strong>
+        <select id="pitcherSelect">
+            <!-- 預設先綁定山本由伸的 ID -->
+            <option value="">載入全聯盟投手中...</option>
+        </select>
+        
+        <!-- 🌟 1. 清空假打席，讓 JS 動態載入 -->
+        <select id="batterSelect">
+            <option value="">載入 2026 實戰打席中...</option>
+        </select>
+    </div>
+
+    <div class="dashboard">
+        <!-- 面板一：真實打席紀錄 -->
+        <div class="panel">
+            <div class="panel-header">實戰紀錄 (Original Sequence)</div>
+            <div class="at-bat-view">
+                <div class="pitch-plot-container">
+                    <div class="strike-zone" id="originalZone"></div>
+                </div>
+                <div class="pitch-list" id="originalList"></div>
+            </div>
+        </div>
+
+        <!-- 面板二：反事實配球實驗室 -->
+        <div class="panel">
+          <div class="panel-header" style="color: var(--highlight);">反事實實驗室 (Counterfactual Lab) - 改變決戰球 (N) / 佈局球 (N-1)</div>
+            <div class="at-bat-view">
+                <div class="pitch-plot-container">
+                    <div class="strike-zone" id="cfZone"></div>
+                </div>
+                
+                <div style="flex:1;">
+                    <div class="lab-controls">
+                      <div class="control-group">
+                        <label style="color:var(--highlight); font-weight:bold;">戰術選擇 (Strategy)</label>
+                        <!-- 🌟 新增模式切換：可以選擇改變 N 或 N-1 -->
+                        <select id="simMode" onchange="runSimulation()">
+                            <option value="last">改變決戰球 (第 N 球)</option>
+                            <option value="second_last">改變佈局球 (第 N-1 球)</option>
+                        </select>
+                      </div>
+
+                      <div class="control-group">
+                            <label>改變球種 (Pitch Type)</label>
+                            <!-- 🌟 2. 清空假球種，讓 JS 根據投手 ID 動態載入 -->
+                            <select id="newPitchType">
+                                <option value="">載入專屬球種中...</option>
+                            </select>
+                      </div>
+                        <div class="control-group">
+                            <label>改變進壘位置 (18宮格)</label>
+                            <!-- 🌟 3. 完美補齊 9好球 + 9壞球 (含壞_中下) -->
+                            <select id="newPitchZone">
+                                <optgroup label="好球帶 (Strike)">
+                                    <option value="左上">左上</option>
+                                    <option value="中上">中上</option>
+                                    <option value="右上">右上</option>
+                                    <option value="左中">左中</option>
+                                    <option value="正中">正中</option>
+                                    <option value="右中">右中</option>
+                                    <option value="左下">左下</option>
+                                    <option value="中下">中下</option>
+                                    <option value="右下">右下</option>
+                                </optgroup>
+                                <optgroup label="陰影/引誘區 (Shadow/Waste)">
+                                    <option value="壞_左上">壞_左上</option>
+                                    <option value="壞_中上">壞_中上</option>
+                                    <option value="壞_右上">壞_右上</option>
+                                    <option value="壞_左中">壞_左中</option>
+                                    <option value="壞_右中">壞_右中</option>
+                                    <option value="壞_左下">壞_左下</option>
+                                    <option value="壞_中下">壞_中下 (低角度引誘)</option>
+                                    <option value="壞_右下">壞_右下</option>
+                                    <option value="壞_挖地瓜" selected>壞_挖地瓜 (提前落地)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <button class="btn-simulate" onclick="runSimulation()">重新模擬打席</button>
+                    </div>
+
+                    <div class="pitch-list" id="cfList" style="margin-top: 15px;"></div>
+
+                    <!-- 雙引擎評估結果 -->
+                    <div class="metrics-container">
+                        <div class="metric-card">
+                            <div class="metric-title">⚔️ 揮空/凍結引誘率 (CSW)</div>
+                            <div class="metric-comparison">
+                                <span class="val-original" id="origCSW" style="display:none;"></span>
+                                <span class="val-new val-improve" id="newCSW">--%</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-title">🛡️ 壓制防護率 (No Hard-Hit)</div>
+                            <div class="metric-comparison">
+                                <span class="val-original" id="origHH" style="display:none;"></span>
+                                <span class="val-new val-improve" id="newHH">--%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      <!-- 面板四：連續配球腳本 (動態多球版) -->
+      <div class="panel">
+        <div class="panel-header" style="color: #e67e22;">連續配球腳本 (Sequence Builder) - 動態多球對決</div>
+        <div class="at-bat-view">
+            <div class="pitch-plot-container">
+                <div class="strike-zone" id="sequenceZone">
+                    <!-- JS 動態繪製連線與落點 -->
+                </div>
+            </div>
+            
+            <div style="flex:1;">
+                <div class="lab-controls" style="margin-bottom: 10px;"> 
+                    <div class="control-group">
+                        <label style="color:#e67e22; font-weight:bold;">配球長度</label>
+                        <!-- 🌟 隨時修改球數，JS 會自動長出對應數量的下拉選單 -->
+                        <input type="number" id="seqLength" value="5" min="1" max="7" style="width: 60px; padding: 5px; text-align:center;" onchange="buildSequenceUI()">
+                    </div>
+                    <button id="btnSequence" class="btn-simulate" onclick="runSequenceSimulation()" style="background-color: #e67e22;">執行完整序列</button>
+                </div>
+
+                <!-- 🌟 存放動態生成球種下拉選單的容器 -->
+                <div id="sequenceBuilderContainer" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;"></div>
+
+                <!-- 序列評估結果呈現區 -->
+                <div class="pitch-list" id="sequenceResultsList" style="margin-top: 15px;">
+                    <div style="font-size: 13px; color: #666; padding-left: 10px;">
+                        ℹ️ 請設定球數並選擇球種。系統將計算每顆球在「歷史殘影 Delta」影響下的逐球期望值。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- 確保引入同資料夾下的 app.js -->
+    <script src="app.js"></script>
+</body>
+</html>

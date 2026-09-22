@@ -1,0 +1,23 @@
+# 1. 排除 Python 虛擬環境
+venv/
+.venv/
+env/
+
+# 2. 排除 Python 快取
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 3. 排除原始大型 CSV (只允許上傳壓縮後的 .csv.gz)
+*.csv
+!*.csv.gz
+
+# 4. 排除編輯器與本機作業系統暫存
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 5. 排除日誌檔
+*.log
