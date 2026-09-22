@@ -1,6 +1,11 @@
 import sys
 import os
 import io
+import gc  # 匯入垃圾回收機制
+import torch
+
+# 🌟 救命仙丹：強制 PyTorch 只能用單一執行緒，防止 0.1 vCPU 卡死與記憶體暴增
+torch.set_num_threads(1)
 
 
 # 強制 UTF-8 輸出，避免 Windows 終端機顯示 Emoji 報錯
@@ -161,22 +166,6 @@ except FileNotFoundError:
 
 # ... (下方模型載入 for matchup in matchups: ... 保持不變)
 
-print("正在載入 PyTorch 雙引擎 8 大對戰模型...")
-models = {'CSW': {}, 'Hardhit': {}}
-matchups = ['LHP vs LHB', 'LHP vs RHB', 'RHP vs LHB', 'RHP vs RHB']
-
-for matchup in matchups:
-    csw_path = os.path.join(BASE_DIR, f'baseball_transformer_weights_CSW_{matchup}_best.pth')
-    hh_path  = os.path.join(BASE_DIR, f'baseball_transformer_weights_Hardhit_{matchup}_best.pth')
-    if os.path.exists(csw_path) and os.path.exists(hh_path):
-        model_w = BaseballTransformerSingleTask().to(device)
-        model_h = BaseballTransformerSingleTask().to(device)
-        model_w.load_state_dict(torch.load(csw_path, map_location=device, weights_only=True))
-        model_h.load_state_dict(torch.load(hh_path, map_location=device, weights_only=True))
-        model_w.eval(); model_h.eval()
-        models['CSW'][matchup] = model_w
-        models['Hardhit'][matchup] = model_h
-        print(f"✅ 成功載入: {matchup}")
 
 @app.route('/api/pitchers', methods=['GET'])
 def get_pitchers():
@@ -254,10 +243,19 @@ def simulate_counterfactual():
     p_arsenal = p_data.get('arsenal_data')
     
     matchup_key = f"{p_throws}HP vs {stand}HB" # 🌟 動態判斷左右投 vs 左右打
-    model_w = models['CSW'].get(matchup_key)
-    model_h = models['Hardhit'].get(matchup_key)
-    if not model_w or not model_h:
+    model_w = BaseballTransformerSingleTask().to(device)
+    model_h = BaseballTransformerSingleTask().to(device)
+    csw_path = os.path.join(BASE_DIR, f'baseball_transformer_weights_CSW_{matchup_key}_best.pth')
+    hh_path = os.path.join(BASE_DIR, f'baseball_transformer_weights_Hardhit_{matchup_key}_best.pth')
+
+    if os.path.exists(csw_path) and os.path.exists(hh_path):
+        model_w.load_state_dict(torch.load(csw_path, map_location=device, weights_only=True))
+        model_h.load_state_dict(torch.load(hh_path, map_location=device, weights_only=True))
+        model_w.eval()
+        model_h.eval()
+    else:
         return jsonify({"error": f"找不到對戰模型 {matchup_key}"}), 500
+    
 
     # 🌟 隔離物理引擎：只用該投手的資料去算平均位移
     p_df = df_2026[df_2026['pitcher'] == pitcher_id] if not df_2026.empty else pd.DataFrame()
@@ -319,6 +317,10 @@ def simulate_counterfactual():
     with torch.no_grad():
         prob_w_cf, prob_h_cf = float(torch.sigmoid(model_w(t_seq_cf, t_ctx))), float(torch.sigmoid(model_h(t_seq_cf, t_ctx)))
         prob_w_orig, prob_h_orig = float(torch.sigmoid(model_w(t_seq_orig, t_ctx))), float(torch.sigmoid(model_h(t_seq_orig, t_ctx)))
+    
+    del model_w
+    del model_h
+    gc.collect()
 
     return jsonify({
         "matchup_used": matchup_key, "sim_mode": sim_mode,
@@ -339,12 +341,20 @@ def simulate_sequence():
     p_arsenal = p_data.get('arsenal_data')
     
     matchup_key = f"{p_throws}HP vs {stand}HB"
-    model_w = models['CSW'].get(matchup_key)
-    model_h = models['Hardhit'].get(matchup_key)
-    
-    if not model_w or not model_h:
-        return jsonify({"error": f"找不到對戰模型 {matchup_key}"}), 500
 
+    model_w = BaseballTransformerSingleTask().to(device)
+    model_h = BaseballTransformerSingleTask().to(device)
+    csw_path = os.path.join(BASE_DIR, f'baseball_transformer_weights_CSW_{matchup_key}_best.pth')
+    hh_path = os.path.join(BASE_DIR, f'baseball_transformer_weights_Hardhit_{matchup_key}_best.pth')
+
+    if os.path.exists(csw_path) and os.path.exists(hh_path):
+        model_w.load_state_dict(torch.load(csw_path, map_location=device, weights_only=True))
+        model_h.load_state_dict(torch.load(hh_path, map_location=device, weights_only=True))
+        model_w.eval()
+        model_h.eval()
+    else:
+        return jsonify({"error": f"找不到對戰模型 {matchup_key}"}), 500
+    
     p_df = df_2026[df_2026['pitcher'] == pitcher_id] if not df_2026.empty else pd.DataFrame()
     
     results = []
@@ -400,6 +410,11 @@ def simulate_sequence():
             "hh_prob": round(prob_h * 100, 1)
         })
         
+    # 🌟 修改這裡：算完立刻砍掉模型
+    del model_w
+    del model_h
+    gc.collect()
+    
     return jsonify({"results": results})
 
 if __name__ == '__main__':
