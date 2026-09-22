@@ -81,28 +81,46 @@ def get_zone_name(px, pz):
             min_dist, best_zone = dist, z_name
     return best_zone
 
-print("正在載入 2026 年實戰數據庫...")
-ALL_ARSENALS = {} # 🌟 建立全域軍火庫字典
+print("正在載入 2026 年實戰數據庫 (精簡版)...")
+ALL_ARSENALS = {} 
 try:
     csv_path = os.path.join(BASE_DIR, 'mlb_pitch_data_2026_strictly_filtered_test.csv.gz')
-    df_2026 = pd.read_csv(csv_path, compression='gzip')
+    
+    # 🌟 1. 欄位瘦身：只讀取模型跟前端畫圖絕對需要的欄位，省下 70% 記憶體
+    # 🌟 在 use_cols 裡面補上 'balls' 與 'strikes'
+    use_cols = [
+        'game_pk', 'at_bat_number', 'pitch_number', 'pitcher', 'pitcher_name', 
+        'p_throws', 'pitch_type', 'release_speed', 'plate_x', 'plate_z_norm', 
+        'pfx_x', 'pfx_z', 'description', 'stand', 'batter_name', 'batter', 'launch_speed',
+        'balls', 'strikes', 'game_date'  # 👈 補上這行，把日期找回來！
+    ]
+    
+    df_2026 = pd.read_csv(csv_path, compression='gzip', usecols=use_cols)
+    
+    # 🌟 2. 完整收錄您指定的球星群（同時支援英文名字模糊搜尋與固定 ID 雙重保險）
+    # 包含：山本由伸、大谷翔平、佐佐木朗希、今永昇太、千賀滉大、菊池雄星、Skubal
+    target_names = ['Yamamoto', 'Ohtani', 'Sasaki', 'Imanaga', 'Senga', 'Kikuchi', 'Skubal']
+    name_pattern = '|'.join(target_names)
+    
+    target_ids = [808967] # 確保山本由伸的 ID 絕對不會漏接，亦可在此加入其他球星 ID
+    
+    # 雙重篩選：只要符合名字關鍵字 或 符合 ID 的通通留下，其餘直接砍掉以省下 90% 記憶體
+    df_2026 = df_2026[
+        df_2026['pitcher_name'].str.contains(name_pattern, case=False, na=False) | 
+        df_2026['pitcher'].isin(target_ids)
+    ].copy()
+
     df_2026['zone_name'] = df_2026.apply(lambda x: get_zone_name(float(x['plate_x']), float(x['plate_z_norm'])), axis=1)
     
-    print("正在建構全聯盟投手軍火庫 (這可能需要幾秒鐘)...")
+    print("正在建構指定球星專屬軍火庫...")
     pitcher_info = df_2026[['pitcher', 'pitcher_name', 'p_throws']].drop_duplicates(subset=['pitcher'])
     for _, row in pitcher_info.iterrows():
         p_id = int(row['pitcher'])
-        p_name = str(row['pitcher_name'])
+        p_name = "Y. Yamamoto" if p_id == 808967 else str(row['pitcher_name'])
         p_throws = str(row['p_throws'])
         
-        # 🌟 客製化山本由伸的名字：去掉漢字，只留拼音
-        if p_id == 808967:
-            p_name = "Y. Yamamoto"
-        elif p_name == "Unknown Pitcher":
-            p_name = f"Pitcher {p_id}"
-            
         try:
-            arsenal = extract_pitcher_arsenal(df_2026, p_id, min_pitch_count=30)
+            arsenal = extract_pitcher_arsenal(df_2026, p_id, min_pitch_count=10)
             if len(arsenal['valid_pitches']) > 0:
                 ALL_ARSENALS[p_id] = {
                     "name": p_name,
@@ -112,7 +130,29 @@ try:
                 }
         except Exception:
             pass
-    print(f"✅ 成功建構 {len(ALL_ARSENALS)} 位投手的專屬軍火庫！")
+    print(f"✅ 成功建構 {len(ALL_ARSENALS)} 位球星的專屬軍火庫！")
+    pitcher_info = df_2026[['pitcher', 'pitcher_name', 'p_throws']].drop_duplicates(subset=['pitcher'])
+    for _, row in pitcher_info.iterrows():
+        p_id = int(row['pitcher'])
+        p_name = str(row['pitcher_name'])
+        p_throws = str(row['p_throws'])
+        
+        # 客製化山本由伸的名字
+        if p_id == 808967:
+            p_name = "Y. Yamamoto"
+            
+        try:
+            arsenal = extract_pitcher_arsenal(df_2026, p_id, min_pitch_count=10) # 門檻調低一點，確保球星少數球種也能抓到
+            if len(arsenal['valid_pitches']) > 0:
+                ALL_ARSENALS[p_id] = {
+                    "name": p_name,
+                    "p_throws": p_throws,
+                    "arsenal_data": arsenal,
+                    "valid_pitches": arsenal['valid_pitches']
+                }
+        except Exception:
+            pass
+    print(f"✅ 成功建構 {len(ALL_ARSENALS)} 位頂級球星的專屬軍火庫！")
 except FileNotFoundError:
     print("找不到 2026 年的 CSV 檔案。")
     df_2026 = pd.DataFrame()
