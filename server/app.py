@@ -3,6 +3,8 @@ import os
 import io
 import gc  # 匯入垃圾回收機制
 import torch
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # 🌟 救命仙丹：強制 PyTorch 只能用單一執行緒，防止 0.1 vCPU 卡死與記憶體暴增
 torch.set_num_threads(1)
@@ -26,7 +28,25 @@ import pandas as pd
 from pitcher_arsenal_extractor import extract_pitcher_arsenal, get_pitch_physics
 
 app = Flask(__name__)
-CORS(app)
+# 🛡️ 防線一：嚴格限制 CORS 白名單
+# 把剛才日誌裡出現的您的真實 GitHub Pages 網址填進去
+ALLOWED_ORIGINS = [
+    "https://iquan-gaspard.github.io/baseball_web_game/client",  # 您的正式環境前端
+    "http://127.0.0.1:5000",            # 本地開發測試
+    "http://localhost:5000"
+]
+
+CORS(app, resources={
+    r"/api/*": {"origins": ALLOWED_ORIGINS}
+})
+
+# 🛡️ 防線二：IP 速率限制 (Rate Limiting)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    storage_uri="memory://", # 免費版直接存在記憶體即可
+    default_limits=["500 per day", "30 per minute"] # 預設限制：每天最多 500 次，每分鐘最多 30 次
+)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class BaseballTransformerSingleTask(nn.Module):
@@ -329,6 +349,7 @@ def simulate_counterfactual():
     })
 
 @app.route('/api/simulate_sequence', methods=['POST'])
+@limiter.limit("10 per minute")  # 針對這個高耗能 API，限制同一個 IP 一分鐘只能算 10 次
 def simulate_sequence():
     """動態多球對決：接收任意長度 (1~6球) 的配球陣列，逐球計算期望值"""
     data = request.json
@@ -414,7 +435,7 @@ def simulate_sequence():
     del model_w
     del model_h
     gc.collect()
-    
+
     return jsonify({"results": results})
 
 if __name__ == '__main__':
