@@ -7,7 +7,7 @@ import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # 取得上一層目錄的絕對路徑，確保能載入模型與外部 Python 檔
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 

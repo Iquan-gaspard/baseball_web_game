@@ -7,6 +7,13 @@ let currentArsenalHTML = ""; // 🌟 用來快取當前投手的 <option>，方�
 let tsPitcher = null;
 let tsBatter = null;
 
+// 自動判斷目前是「本地開發」還是「正式上線」
+const API_BASE_URL =
+  window.location.hostname === "127.0.0.1" ||
+  window.location.hostname === "localhost"
+    ? "http://127.0.0.1:5000"
+    : "https://baseball-web-game.onrender.com";
+
 const zoneCoordinates = {
   左上: { x: 16, y: 16 },
   中上: { x: 50, y: 16 },
@@ -30,7 +37,9 @@ const zoneCoordinates = {
 
 async function loadAllPitchers() {
   try {
-    const response = await fetch("http://127.0.0.1:5000/api/pitchers");
+    const response = await fetch(API_BASE_URL + "/api/pitchers");
+    // 🌟 請修改為：
+    // const response = await fetch("${API_BASE_URL}/api/pitchers");
     allPitchersData = await response.json();
 
     const pitcherSelect = document.getElementById("pitcherSelect");
@@ -91,9 +100,7 @@ function updatePitcherUI(pitcherId) {
 }
 async function loadAtBats(pitcherId) {
   try {
-    const response = await fetch(
-      `http://127.0.0.1:5000/api/atbats/${pitcherId}`
-    );
+    const response = await fetch(API_BASE_URL + "/api/atbats/" + pitcherId);
     const atbats = await response.json();
 
     // 🌟 關鍵：當切換投手時，必須先銷毀前一個投手的打者搜尋列，才能重新建立
@@ -123,6 +130,7 @@ async function loadAtBats(pitcherId) {
       create: false,
       sortField: false,
       placeholder: "請輸入英文搜尋打者與日期...",
+      maxOptions: 1000, // 🌟 加入這一行：把選項上限拉高到 1000 筆，解鎖後續月份
     });
 
     // 綁定切換事件
@@ -308,7 +316,7 @@ async function runSimulation() {
   if (len >= 1) orig_data = getPhys(currentAtBatData[len - 1]);
 
   try {
-    const response = await fetch("http://127.0.0.1:5000/api/simulate", {
+    const response = await fetch(API_BASE_URL + "/api/simulate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -412,18 +420,15 @@ async function runSequenceSimulation() {
   btn.disabled = true;
 
   try {
-    const response = await fetch(
-      "http://127.0.0.1:5000/api/simulate_sequence",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pitcher_id: pitcherId,
-          stand: currentStand, // 🌟 關鍵修改：直接套用目前上方選定的真實打者慣用手
-          pitches: pitches,
-        }),
-      }
-    );
+    const response = await fetch(API_BASE_URL + "/api/simulate_sequence", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pitcher_id: pitcherId,
+        stand: currentStand, // 🌟 關鍵修改：直接套用目前上方選定的真實打者慣用手
+        pitches: pitches,
+      }),
+    });
 
     const data = await response.json();
 
