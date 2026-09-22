@@ -332,6 +332,18 @@ async function runSimulation() {
       }),
     });
 
+    // 🛡️ 攔截錯誤狀態碼
+    if (!response.ok) {
+      if (response.status === 429) {
+        alert("⏳ 您的運算請求太頻繁了，請稍等一分鐘後再試！");
+      } else if (response.status === 500) {
+        alert("💥 伺服器運算發生錯誤，請重新整理頁面。");
+      } else {
+        alert(`⚠️ 發生未知錯誤 (HTTP ${response.status})`);
+      }
+      return; // 終止後續執行，避免 JSON 解析錯誤
+    }
+
     const result = await response.json();
 
     renderCounterfactual({ x: coords.x, y: coords.y, type: pType });
@@ -425,10 +437,22 @@ async function runSequenceSimulation() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         pitcher_id: pitcherId,
-        stand: currentStand, // 🌟 關鍵修改：直接套用目前上方選定的真實打者慣用手
+        stand: currentStand,
         pitches: pitches,
       }),
     });
+
+    // 🛡️ 攔截錯誤狀態碼
+    if (!response.ok) {
+      if (response.status === 429) {
+        alert("⏳ 您使用的算力已達上限，請稍等一分鐘後再試！");
+      } else if (response.status === 500) {
+        alert("💥 模型運算發生錯誤，可能是極端球種參數異常。");
+      } else {
+        alert(`⚠️ 發生未知錯誤 (HTTP ${response.status})`);
+      }
+      return;
+    }
 
     const data = await response.json();
 
