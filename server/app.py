@@ -13,7 +13,8 @@ import torch.nn as nn
 import numpy as np
 import pandas as pd
 from pitcher_arsenal_extractor import extract_pitcher_arsenal, get_pitch_physics
-
+from dotenv import load_dotenv
+load_dotenv()
 
 # 🌟 救命仙丹：強制 PyTorch 只能用單一執行緒，防止 0.1 vCPU 卡死與記憶體暴增
 torch.set_num_threads(1)
