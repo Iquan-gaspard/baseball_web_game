@@ -273,3 +273,54 @@ select {
   text-overflow: ellipsis;
   max-width: 100%;
 }
+
+/* =========================================================
+   📱 手機版 RWD 響應式排版 (螢幕寬度小於 768px 時觸發)
+   ========================================================= */
+@media screen and (max-width: 768px) {
+  /* 1. 將所有主要區塊從「左右並排」改為「上下堆疊」 */
+  /* 請確認這裡的 class 與您包覆九宮格和列表的父容器一致，例如 .panel-body 或 .flex-row */
+  div[style*="display: flex"] {
+    flex-direction: column !important;
+  }
+
+  /* 2. 修正九宮格被切邊的問題，讓它置中並佔滿合適寬度 */
+  #originalZone,
+  #cfZone,
+  #sequenceZone {
+    margin: 0 auto 20px auto !important; /* 置中並在底部加入間距 */
+    width: 100% !important;
+    max-width: 250px; /* 防止在手機上過度放大 */
+  }
+
+  /* 3. 右側數據區塊佔滿 100% 寬度，取消原本的左側間距 */
+  #originalList,
+  #cfList,
+  #sequenceResultsList {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  /* 4. 修復「動態多球對決」連續下拉選單的擠壓 */
+  #sequenceBuilderContainer > div {
+    flex-wrap: wrap !important; /* 允許換行 */
+    margin-bottom: 15px;
+  }
+  #sequenceBuilderContainer select {
+    width: 100% !important; /* 讓選單在手機上變大，方便手指點擊 */
+    margin-top: 5px;
+  }
+
+  /* 5. 修復最後一張圖的文字重疊問題 (CSW 與 防護率) */
+  .pitch-result {
+    flex-direction: column !important; /* 讓球種與期望值分兩行顯示 */
+    align-items: flex-start !important;
+    gap: 5px;
+    font-size: 0.9em !important; /* 稍微縮小字體適應螢幕 */
+  }
+
+  .pitch-result span {
+    display: block;
+    width: 100%;
+  }
+}
