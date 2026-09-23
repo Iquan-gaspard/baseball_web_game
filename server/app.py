@@ -6,6 +6,14 @@ import torch
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import torch
+import torch.nn as nn
+import numpy as np
+import pandas as pd
+from pitcher_arsenal_extractor import extract_pitcher_arsenal, get_pitch_physics
+
 
 # 🌟 救命仙丹：強制 PyTorch 只能用單一執行緒，防止 0.1 vCPU 卡死與記憶體暴增
 torch.set_num_threads(1)
@@ -19,15 +27,6 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import torch
-import torch.nn as nn
-import numpy as np
-import pandas as pd
-
-from pitcher_arsenal_extractor import extract_pitcher_arsenal, get_pitch_physics
-
 app = Flask(__name__)
 
 # 🌟 補回 Render 反向代理修復，確保限流功能可以抓到真實訪客 IP
@@ -39,7 +38,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 # 🌟 讀取系統環境變數。如果雲端沒有設定，就預設給本地端的這些網址 (方便您開發)
 origins_env = os.getenv(
     "ALLOWED_ORIGINS", 
-    "https://iquan-gaspard.github.io,http://127.0.0.1:5500,http://localhost:5500,http://127.0.0.1:5501,http://localhost:5501,http://127.0.0.1:5000,http://localhost:5000"
+    "http://127.0.0.1:5500,http://localhost:5500,http://127.0.0.1:5501,http://localhost:5501,http://127.0.0.1:5000,http://localhost:5000"
 )
 
 # 將逗號分隔的字串，自動切成陣列
