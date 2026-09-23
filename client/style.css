@@ -275,52 +275,82 @@ select {
 }
 
 /* =========================================================
-   📱 手機版 RWD 響應式排版 (螢幕寬度小於 768px 時觸發)
+   📱 手機版 RWD 終極修復 (專為自訂類別 .controls / .at-bat-view 打造)
    ========================================================= */
 @media screen and (max-width: 768px) {
-  /* 1. 將所有主要區塊從「左右並排」改為「上下堆疊」 */
-  /* 請確認這裡的 class 與您包覆九宮格和列表的父容器一致，例如 .panel-body 或 .flex-row */
-  div[style*="display: flex"] {
+  /* ---------------------------------------------------
+       1. 頂部選單修復 (.controls) - 「選擇打席」、投手、打者上下排列
+       --------------------------------------------------- */
+  .controls {
     flex-direction: column !important;
+    align-items: stretch !important; /* 讓下拉選單填滿左右寬度 */
+    gap: 12px !important;
+    padding: 15px !important;
   }
 
-  /* 2. 修正九宮格被切邊的問題，讓它置中並佔滿合適寬度 */
-  #originalZone,
-  #cfZone,
-  #sequenceZone {
-    margin: 0 auto 20px auto !important; /* 置中並在底部加入間距 */
+  .controls strong {
+    text-align: left !important;
+    display: block !important;
+    margin-bottom: -5px !important; /* 縮小與下方選單的間距 */
+  }
+
+  /* 覆蓋掉原本桌機版的 max-width: 350px 限制，讓它在手機上 100% 寬 */
+  .ts-wrapper,
+  .ts-control,
+  select {
     width: 100% !important;
-    max-width: 250px; /* 防止在手機上過度放大 */
+    max-width: 100% !important;
   }
 
-  /* 3. 右側數據區塊佔滿 100% 寬度，取消原本的左側間距 */
-  #originalList,
-  #cfList,
-  #sequenceResultsList {
+  /* ---------------------------------------------------
+       2. 內容區塊修復 (.at-bat-view) - 九宮格在上，逐球紀錄在下
+       --------------------------------------------------- */
+  .at-bat-view {
+    flex-direction: column !important; /* 關鍵：強制改為上下堆疊 */
+    align-items: center !important;
+    gap: 25px !important;
+  }
+
+  /* 讓右側的資訊區塊 (包含列表、控制項) 佔滿全寬，不要被壓縮 */
+  .at-bat-view > div {
     width: 100% !important;
-    margin-left: 0 !important;
   }
 
-  /* 4. 修復「動態多球對決」連續下拉選單的擠壓 */
-  #sequenceBuilderContainer > div {
-    flex-wrap: wrap !important; /* 允許換行 */
-    margin-bottom: 15px;
-  }
-  #sequenceBuilderContainer select {
-    width: 100% !important; /* 讓選單在手機上變大，方便手指點擊 */
-    margin-top: 5px;
+  /* 九宮格容器強制置中 */
+  .pitch-plot-container {
+    margin: 0 auto !important;
   }
 
-  /* 5. 修復最後一張圖的文字重疊問題 (CSW 與 防護率) */
-  .pitch-result {
-    flex-direction: column !important; /* 讓球種與期望值分兩行顯示 */
+  /* ---------------------------------------------------
+       3. 實驗室操作控制列 (.lab-controls) - 按鈕與選單拉滿寬度
+       --------------------------------------------------- */
+  .lab-controls {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .control-group {
+    width: 100% !important;
+  }
+
+  .btn-simulate,
+  #btnSequence {
+    width: 100% !important; /* 讓「重新模擬打席」按鈕變大，方便手指點擊 */
+    margin-top: 5px !important;
+  }
+
+  /* ---------------------------------------------------
+       4. 期望值數據卡片 (.metrics-container) - 上下排列防破版
+       --------------------------------------------------- */
+  .metrics-container {
+    flex-direction: column !important; /* 將兩張卡片改為上下疊放 */
+    gap: 15px !important;
+  }
+
+  /* 微調卡片內部排版，讓標題跟數值更好看 */
+  .metric-card {
+    flex-direction: column !important;
     align-items: flex-start !important;
-    gap: 5px;
-    font-size: 0.9em !important; /* 稍微縮小字體適應螢幕 */
-  }
-
-  .pitch-result span {
-    display: block;
-    width: 100%;
+    gap: 8px !important;
   }
 }
