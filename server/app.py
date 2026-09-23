@@ -35,15 +35,16 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 # 🛡️ 防線一：正確的 CORS 白名單
 # 注意：Origin 只能是「通訊協定 + 網域 + Port」，不能有後面的路徑！
 # 加入了 5500 port 讓您的 VS Code Live Server 可以順利連線
-ALLOWED_ORIGINS = [
-    "https://iquan-gaspard.github.io",  # GitHub Pages 正式環境
-    "http://127.0.0.1:5500",            # VS Code 本地 Live Server (預設)
-    "http://localhost:5500",
-    "http://127.0.0.1:5501",            # 🌟 新增：VS Code 本地 Live Server (分身)
-    "http://localhost:5501",
-    "http://127.0.0.1:5000",
-    "http://localhost:5000"
-]
+
+# 🌟 讀取系統環境變數。如果雲端沒有設定，就預設給本地端的這些網址 (方便您開發)
+origins_env = os.getenv(
+    "ALLOWED_ORIGINS", 
+    "https://iquan-gaspard.github.io,http://127.0.0.1:5500,http://localhost:5500,http://127.0.0.1:5501,http://localhost:5501,http://127.0.0.1:5000,http://localhost:5000"
+)
+
+# 將逗號分隔的字串，自動切成陣列
+ALLOWED_ORIGINS = [origin.strip() for origin in origins_env.split(",")]
+
 CORS(app, resources={
     r"/api/*": {"origins": ALLOWED_ORIGINS}
 })
