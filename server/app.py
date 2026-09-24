@@ -142,7 +142,7 @@ try:
     
     # 🌟 2. 完整收錄您指定的球星群（同時支援英文名字模糊搜尋與固定 ID 雙重保險）
     # 包含：山本由伸、大谷翔平、佐佐木朗希、今永昇太、千賀滉大、菊池雄星、Skubal
-    target_names = ['Yamamoto', 'Ohtani', 'Sasaki', 'Imanaga', 'Senga', 'Kikuchi', 'Skubal']
+    target_names = ['Yamamoto', 'Ohtani', 'Sasaki', 'Imanaga', 'Senga', 'Kikuchi', 'Skubal','sale','skenes']
     name_pattern = '|'.join(target_names)
     
     target_ids = [808967] # 確保山本由伸的 ID 絕對不會漏接，亦可在此加入其他球星 ID
