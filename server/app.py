@@ -143,26 +143,26 @@ def build_20d_context(adv, b_count=0, s_count=0):
     return ball_ohe + strike_ohe + pull_ohe + arm_ohe + advanced_stats
 
     print("正在載入迷你版實戰數據庫...")
-    ALL_ARSENALS = {} 
-    try:
+ALL_ARSENALS = {} 
+try:
     # 🌟 讀取您剛剛做好的迷你版檔案！
-        csv_path = os.path.join(BASE_DIR, 'mlb_mini_2026.csv.gz')
-        
-        use_cols = [
-            'game_pk', 'at_bat_number', 'pitch_number', 'pitcher', 'pitcher_name', 
-            'p_throws', 'pitch_type', 'release_speed', 'plate_x', 'plate_z_norm', 
-            'pfx_x', 'pfx_z', 'description', 'stand', 'batter_name', 'batter', 'launch_speed',
-            'balls', 'strikes', 'game_date',
-            'Pull%', 'player_age', 'z_swing_percent', 'z_swing_miss_percent', 
-            'oz_swing_percent', 'oz_swing_miss_percent', 'meatball_swing_percent',
-            'attack_angle', 'arm_angle'
-        ]
+    csv_path = os.path.join(BASE_DIR, 'mlb_mini_2026.csv.gz')
     
-    # 🌟 因為已經是迷你版，直接一口氣讀進來，毫無記憶體壓力
+    use_cols = [
+        'game_pk', 'at_bat_number', 'pitch_number', 'pitcher', 'pitcher_name', 
+        'p_throws', 'pitch_type', 'release_speed', 'plate_x', 'plate_z_norm', 
+        'pfx_x', 'pfx_z', 'description', 'stand', 'batter_name', 'batter', 'launch_speed',
+        'balls', 'strikes', 'game_date',
+        'Pull%', 'player_age', 'z_swing_percent', 'z_swing_miss_percent', 
+        'oz_swing_percent', 'oz_swing_miss_percent', 'meatball_swing_percent',
+        'attack_angle', 'arm_angle'
+    ]
+
     df_2026 = pd.read_csv(csv_path, compression='gzip', usecols=use_cols)
 
     df_2026['zone_name'] = df_2026.apply(lambda x: get_zone_name(float(x['plate_x']), float(x['plate_z_norm'])), axis=1)
     
+    print("正在建構球星專屬軍火庫...")
     pitcher_info = df_2026[['pitcher', 'pitcher_name', 'p_throws']].drop_duplicates(subset=['pitcher'])
     for _, row in pitcher_info.iterrows():
         p_id = int(row['pitcher'])
@@ -175,8 +175,10 @@ def build_20d_context(adv, b_count=0, s_count=0):
         except Exception:
             pass
     print(f"✅ 成功建構 {len(ALL_ARSENALS)} 位球星的專屬軍火庫！")
+
+
 except FileNotFoundError:
-    print("找不到 2026 年的 CSV 檔案。")
+    print("找不到迷你版 CSV 檔案。")
     df_2026 = pd.DataFrame()
 
 @app.route('/api/pitchers', methods=['GET'])
