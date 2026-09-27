@@ -165,10 +165,26 @@ try:
     name_pattern = '|'.join(target_names)
     target_ids = [808967] 
     
-    df_2026 = df_2026[
-        df_2026['pitcher_name'].str.contains(name_pattern, case=False, na=False) | 
-        df_2026['pitcher'].isin(target_ids)
-    ].copy()
+    #  512MB RAM ：分塊讀取 (Chunking)
+    # 每次只讀取 10,000 筆資料進記憶體
+    chunk_iter = pd.read_csv(csv_path, compression='gzip', usecols=use_cols, chunksize=10000)
+    filtered_chunks = []
+    
+    for chunk in chunk_iter:
+        # 在每一小塊 (Chunk) 中立刻過濾目標球星，其他雜魚資料立刻丟棄
+        mini_chunk = chunk[
+            chunk['pitcher_name'].str.contains(name_pattern, case=False, na=False) | 
+            chunk['pitcher'].isin(target_ids)
+        ]
+        filtered_chunks.append(mini_chunk)
+        
+    # 將過濾後的所有小積木組裝起來，成為最終的輕量級 DataFrame
+    df_2026 = pd.concat(filtered_chunks, ignore_index=True)
+    
+    # 強制清空緩存與垃圾回收，確保記憶體安全
+    del filtered_chunks
+    del chunk_iter
+    gc.collect()
 
     df_2026['zone_name'] = df_2026.apply(lambda x: get_zone_name(float(x['plate_x']), float(x['plate_z_norm'])), axis=1)
     
