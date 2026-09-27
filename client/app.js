@@ -2,44 +2,44 @@ let currentAtBatData = [];
 let currentStand = "R";
 let allAtBats = {};
 let allAtBatsMeta = {};
-let allPitchersData = {}; // 🌟 儲存全聯盟投手資料
-let currentArsenalHTML = ""; // 🌟 用來快取當前投手的 <option>，方便動態生成
+let allPitchersData = {};
+let currentArsenalHTML = "";
 let tsPitcher = null;
 let tsBatter = null;
+let currentAdvStats = {};
 
-// 自動判斷目前是「本地開發」還是「正式上線」
+// 🌟 雲端專屬：自動判斷目前是「本地開發」還是「正式上線」
 const API_BASE_URL =
   window.location.hostname === "127.0.0.1" ||
   window.location.hostname === "localhost"
     ? "http://127.0.0.1:5000"
     : "https://baseball-web-game.onrender.com";
 
+// 🌟 本地端最新移植：完美 17-50-83 座標網格
 const zoneCoordinates = {
-  左上: { x: 16, y: 16 },
-  中上: { x: 50, y: 16 },
-  右上: { x: 83, y: 16 },
-  左中: { x: 16, y: 50 },
+  左上: { x: 17, y: 17 },
+  中上: { x: 50, y: 17 },
+  右上: { x: 83, y: 17 },
+  左中: { x: 17, y: 50 },
   正中: { x: 50, y: 50 },
   右中: { x: 83, y: 50 },
-  左下: { x: 16, y: 83 },
+  左下: { x: 17, y: 83 },
   中下: { x: 50, y: 83 },
   右下: { x: 83, y: 83 },
-  壞_左上: { x: -15, y: -15 },
-  壞_中上: { x: 50, y: -15 },
-  壞_右上: { x: 115, y: -15 },
-  壞_左中: { x: -15, y: 50 },
-  壞_右中: { x: 115, y: 50 },
-  壞_左下: { x: -15, y: 115 },
-  壞_中下: { x: 50, y: 115 },
-  壞_右下: { x: 115, y: 115 },
-  壞_挖地瓜: { x: 50, y: 140 },
+  壞_左上: { x: -17, y: -17 },
+  壞_中上: { x: 50, y: -17 },
+  壞_右上: { x: 117, y: -17 },
+  壞_左中: { x: -17, y: 50 },
+  壞_右中: { x: 117, y: 50 },
+  壞_左下: { x: -17, y: 117 },
+  壞_中下: { x: 50, y: 117 },
+  壞_右下: { x: 117, y: 117 },
+  壞_挖地瓜: { x: 50, y: 134 },
 };
 
 async function loadAllPitchers() {
   try {
     const response = await fetch(API_BASE_URL + "/api/pitchers");
-    // 🌟 請修改為：
-    // const response = await fetch("${API_BASE_URL}/api/pitchers");
     allPitchersData = await response.json();
 
     const pitcherSelect = document.getElementById("pitcherSelect");
@@ -56,19 +56,16 @@ async function loadAllPitchers() {
       pitcherSelect.appendChild(opt);
     });
 
-    // 🌟 初始化投手的 Tom Select 搜尋引擎
     tsPitcher = new TomSelect("#pitcherSelect", {
       create: false,
-      sortField: false, // 關閉自動排序，維持山本由伸在第一位
+      sortField: false,
       placeholder: "請輸入英文搜尋投手...",
     });
 
-    // 綁定切換事件
     tsPitcher.on("change", (value) => {
       if (value) updatePitcherUI(value);
     });
 
-    // 預設選擇山本由伸 (silent=true 避免重複觸發 change)
     tsPitcher.setValue("808967", true);
     updatePitcherUI("808967");
   } catch (error) {
@@ -88,7 +85,6 @@ function updatePitcherUI(pitcherId) {
     allPitchersData[pitcherId].arsenal.forEach((pitch) => {
       const optStr = `<option value="${pitch.value}">${pitch.label}</option>`;
       currentArsenalHTML += optStr;
-
       const opt = document.createElement("option");
       opt.value = pitch.value;
       opt.innerText = pitch.label;
@@ -98,15 +94,13 @@ function updatePitcherUI(pitcherId) {
   loadAtBats(pitcherId);
   buildSequenceUI();
 }
+
 async function loadAtBats(pitcherId) {
   try {
     const response = await fetch(API_BASE_URL + "/api/atbats/" + pitcherId);
     const atbats = await response.json();
 
-    // 🌟 關鍵：當切換投手時，必須先銷毀前一個投手的打者搜尋列，才能重新建立
-    if (tsBatter) {
-      tsBatter.destroy();
-    }
+    if (tsBatter) tsBatter.destroy();
 
     const batterSelect = document.getElementById("batterSelect");
     batterSelect.innerHTML = "";
@@ -125,29 +119,39 @@ async function loadAtBats(pitcherId) {
       batterSelect.appendChild(opt);
     });
 
-    // 🌟 初始化打者的 Tom Select 搜尋引擎
     tsBatter = new TomSelect("#batterSelect", {
       create: false,
       sortField: false,
       placeholder: "請輸入英文搜尋打者與日期...",
-      maxOptions: 1000, // 🌟 加入這一行：把選項上限拉高到 1000 筆，解鎖後續月份
+      maxOptions: 1000,
     });
 
-    // 綁定切換事件
     tsBatter.on("change", (value) => {
       if (value) {
         currentAtBatData = allAtBats[value];
         currentStand = allAtBatsMeta[value];
+
+        const selectedAb = atbats.find((ab) => ab.ab_id === value);
+        currentAdvStats =
+          selectedAb && selectedAb.adv_stats ? selectedAb.adv_stats : {};
+        console.log(`\n✅ 成功載入打席: ${selectedAb.label}`);
+        console.table(currentAdvStats);
+
         renderOriginal();
       }
     });
 
-    // 預設選擇該投手的第一筆實戰打席
     if (atbats.length > 0) {
       const firstId = atbats[0].ab_id;
       tsBatter.setValue(firstId, true);
       currentAtBatData = allAtBats[firstId];
       currentStand = allAtBatsMeta[firstId];
+
+      const firstAb = atbats[0];
+      currentAdvStats = firstAb.adv_stats || {};
+      console.log(`\n✅ 預設載入打席: ${firstAb.label}`);
+      console.table(currentAdvStats);
+
       renderOriginal();
     }
   } catch (error) {
@@ -290,7 +294,7 @@ async function runSimulation() {
   let n2_data = { speed: 0.95, px: 0, pz: 0, pfx_x: 0, pfx_z: 0 };
   let n1_data = { speed: 0.95, px: 0, pz: 0, pfx_x: 0, pfx_z: 0 };
   let orig_data = { speed: 0.95, px: 0, pz: 0, pfx_x: 0, pfx_z: 0 };
-  let n1_out = [0, 1, 0, 0, 0, 0];
+  let n1_out = [1, 0, 0];
 
   const len = currentAtBatData.length;
   if (len >= 3) n2_data = getPhys(currentAtBatData[len - 3]);
@@ -298,20 +302,35 @@ async function runSimulation() {
     const n1 = currentAtBatData[len - 2];
     n1_data = getPhys(n1);
     const res = n1.result;
-    n1_out = [
-      res === "called_strike" ? 1 : 0,
-      [
-        "swinging_strike",
-        "swinging_pitchout",
-        "swinging_strike_blocked",
-      ].includes(res)
-        ? 1
-        : 0,
-      ["foul", "foul_bunt"].includes(res) ? 1 : 0,
-      res === "foul_tip" ? 1 : 0,
-      ["ball", "pitchout"].includes(res) ? 1 : 0,
-      res === "blocked_ball" ? 1 : 0,
-    ];
+    const isTake = [
+      "called_strike",
+      "ball",
+      "blocked_ball",
+      "pitchout",
+    ].includes(res)
+      ? 1
+      : 0;
+    const isWhiff = [
+      "swinging_strike",
+      "swinging_pitchout",
+      "swinging_strike_blocked",
+      "foul_tip",
+    ].includes(res)
+      ? 1
+      : 0;
+    const isFoul = ["foul", "foul_bunt"].includes(res) ? 1 : 0;
+    n1_out = [isTake, isWhiff, isFoul];
+  }
+
+  let bCount = 0;
+  let sCount = 0;
+  if (len >= 1) {
+    const countStr = currentAtBatData[len - 1].count;
+    const parts = countStr.split("-");
+    if (parts.length === 2) {
+      bCount = parseInt(parts[0].trim());
+      sCount = parseInt(parts[1].trim());
+    }
   }
   if (len >= 1) orig_data = getPhys(currentAtBatData[len - 1]);
 
@@ -325,6 +344,9 @@ async function runSimulation() {
         pitch_type: pType,
         pitch_zone: pZone,
         stand: currentStand,
+        adv_stats: currentAdvStats,
+        b_count: bCount,
+        s_count: sCount,
         n2_pitch: n2_data,
         n1_pitch: n1_data,
         n1_outcome: n1_out,
@@ -332,7 +354,7 @@ async function runSimulation() {
       }),
     });
 
-    // 🛡️ 攔截錯誤狀態碼
+    // 🌟 雲端專屬：攔截錯誤狀態碼與 429 防護
     if (!response.ok) {
       if (response.status === 429) {
         alert("⏳ 您的運算請求太頻繁了，請稍等一分鐘後再試！");
@@ -341,31 +363,43 @@ async function runSimulation() {
       } else {
         alert(`⚠️ 發生未知錯誤 (HTTP ${response.status})`);
       }
-      return; // 終止後續執行，避免 JSON 解析錯誤
+      return;
     }
 
     const result = await response.json();
-
     renderCounterfactual({ x: coords.x, y: coords.y, type: pType });
 
-    const origCswEl = document.getElementById("origCSW");
-    const origHhEl = document.getElementById("origHH");
-    const cswEl = document.getElementById("newCSW");
-    const hhEl = document.getElementById("newHH");
+    const labels = [
+      { id: "Take", idx: 0, isPitcherFriendly: null },
+      { id: "Whiff", idx: 1, isPitcherFriendly: true },
+      { id: "Foul", idx: 2, isPitcherFriendly: true },
+      { id: "Weak", idx: 3, isPitcherFriendly: true },
+      { id: "Hard", idx: 4, isPitcherFriendly: false },
+    ];
 
-    origCswEl.style.display = "inline";
-    origHhEl.style.display = "inline";
-    origCswEl.innerText = `${result.orig_csw_prob}%`;
-    origHhEl.innerText = `${result.orig_hh_prob}%`;
+    labels.forEach((item) => {
+      const origEl = document.getElementById(`orig${item.id}`);
+      const newEl = document.getElementById(`new${item.id}`);
+      if (!origEl || !newEl) return;
 
-    cswEl.innerText = `${result.csw_prob}%`;
-    hhEl.innerText = `${result.hh_prob}%`;
-    cswEl.className = `val-new ${
-      result.csw_prob > result.orig_csw_prob ? "val-improve" : "val-worsen"
-    }`;
-    hhEl.className = `val-new ${
-      result.hh_prob > result.orig_hh_prob ? "val-improve" : "val-worsen"
-    }`;
+      const origVal = result.orig_probs[item.idx];
+      const newVal = result.cf_probs[item.idx];
+
+      origEl.style.display = "inline";
+      origEl.innerText = `${origVal}%`;
+      newEl.innerText = `${newVal}%`;
+
+      if (item.isPitcherFriendly !== null && newVal !== origVal) {
+        const isImproved = item.isPitcherFriendly
+          ? newVal > origVal
+          : newVal < origVal;
+        newEl.className = `val-new ${
+          isImproved ? "val-improve" : "val-worsen"
+        }`;
+      } else {
+        newEl.className = "val-new";
+      }
+    });
   } catch (error) {
     console.error(error);
   } finally {
@@ -374,20 +408,10 @@ async function runSimulation() {
   }
 }
 
-// 🌟 最關鍵的修復：正確啟動瀑布流載入
 window.onload = () => {
-  // const sourceZones = document.getElementById("newPitchZone").innerHTML;
-  // document.getElementById("freeP1Zone").innerHTML = sourceZones;
-  // document.getElementById("freeP2Zone").innerHTML = sourceZones;
-
-  // document.getElementById("freeZone").innerHTML =
-  //   '<div class="zone-cell"></div>'.repeat(9);
-
-  // 正確呼叫新的載入全聯盟函數
   loadAllPitchers();
 };
 
-// 🌟 核心：根據輸入的數字 (1~6)，動態生成對應數量的配球選項
 function buildSequenceUI() {
   const container = document.getElementById("sequenceBuilderContainer");
   const length = parseInt(document.getElementById("seqLength").value) || 5;
@@ -411,12 +435,11 @@ function buildSequenceUI() {
     container.appendChild(row);
   }
 }
+
 async function runSequenceSimulation() {
   const length = parseInt(document.getElementById("seqLength").value) || 5;
-  // 🌟 移除 const stand = document.getElementById('seqStand').value;
   const pitcherId = document.getElementById("pitcherSelect").value;
 
-  // 將畫面上的選單打包成陣列
   const pitches = [];
   for (let i = 1; i <= length; i++) {
     pitches.push({
@@ -425,10 +448,8 @@ async function runSequenceSimulation() {
     });
   }
 
-  // 🌟 永遠精準抓取這顆按鈕，不怕別人刪除其他面板
   const btn = document.getElementById("btnSequence");
   btn.innerText = "運算中...";
-  btn.disabled = true;
   btn.disabled = true;
 
   try {
@@ -438,11 +459,12 @@ async function runSequenceSimulation() {
       body: JSON.stringify({
         pitcher_id: pitcherId,
         stand: currentStand,
+        adv_stats: currentAdvStats,
         pitches: pitches,
       }),
     });
 
-    // 🛡️ 攔截錯誤狀態碼
+    // 🌟 雲端專屬：攔截錯誤狀態碼與 429 防護
     if (!response.ok) {
       if (response.status === 429) {
         alert("⏳ 您使用的算力已達上限，請稍等一分鐘後再試！");
@@ -456,7 +478,6 @@ async function runSequenceSimulation() {
 
     const data = await response.json();
 
-    // 1. 畫出九宮格上的所有球，並標示順序
     const zone = document.getElementById("sequenceZone");
     zone.innerHTML = '<div class="zone-cell"></div>'.repeat(9);
 
@@ -475,7 +496,6 @@ async function runSequenceSimulation() {
       zone.appendChild(dot);
     });
 
-    // 2. 顯示每一球的數據結果
     const list = document.getElementById("sequenceResultsList");
     list.innerHTML = "";
 
@@ -483,23 +503,27 @@ async function runSequenceSimulation() {
       const item = document.createElement("div");
       item.className = "pitch-item modified";
       item.style.borderColor = "#e67e22";
+
       item.innerHTML = `
-              <div class="pitch-number" style="background:#e67e22">${r.pitch_num}</div>
-              <div class="pitch-info" style="flex:1;">
-                  <div class="pitch-result" style="color:#e67e22; display:flex; justify-content: space-between;">
-                      <span><strong>${r.type}</strong> (${r.zone})</span>
-                      <span>
-                          揮空 CSW: <strong style="font-size:1.1em; color:#333;">${r.csw_prob}%</strong> | 
-                          防護率 (No HH): <strong style="font-size:1.1em; color:#333;">${r.hh_prob}%</strong>
-                      </span>
-                  </div>
+          <div class="pitch-number" style="background:#e67e22">${r.pitch_num}</div>
+          <div class="pitch-info" style="flex:1;">
+              <div class="pitch-result" style="color:#e67e22; margin-bottom: 8px;">
+                  <strong>${r.type}</strong> (${r.zone})
               </div>
-          `;
+              <div class="badge-container">
+                  <span class="badge badge-take" style="background:#7f8c8d;">👀 不揮棒 ${r.probs.take}%</span>
+                  <span class="badge badge-whiff">💨 揮空 ${r.probs.whiff}%</span>
+                  <span class="badge badge-foul">🛑 界外 ${r.probs.foul}%</span>
+                  <span class="badge badge-weak">🏏 弱擊 ${r.probs.weak_contact}%</span>
+                  <span class="badge badge-hard">🚀 強擊 ${r.probs.hard_contact}%</span>
+              </div>
+          </div>
+      `;
       list.appendChild(item);
     });
   } catch (e) {
     console.error(e);
-    alert("序列運算發生錯誤！");
+    alert("序列運算發生錯誤！請確認後端伺服器是否正常運作。");
   } finally {
     btn.innerText = "執行完整序列";
     btn.disabled = false;

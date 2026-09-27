@@ -3,12 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- <title>Pitching Counterfactual Lab | 雙引擎配球模擬器</title> -->
-    <title>AI 棒球配球系統 - 大聯盟實戰數據推演</title>
-    <meta property="og:title" content="AI 棒球配球系統 - 大聯盟實戰數據推演" />
-    <meta property="og:description" content="透過 PyTorch 神經網路與真實 MLB 數據，模擬決戰球與配球策略的期望值。" />
-    <meta property="og:image" content="https://iquan-gaspard.github.io/baseball_web_game/screenshot.png" /> <!-- 記得做一張截圖放進資料夾 -->
-    <meta property="og:url" content="https://iquan-gaspard.github.io/baseball_web_game/client/" />
+    <title>Pitching Counterfactual Lab | 雙引擎配球模擬器</title>
     <!-- 確保你有引入同資料夾下的 style.css -->
     <link rel="stylesheet" href="style.css">
     <!-- 引入 Tom Select 的樣式與核心程式碼 -->
@@ -19,7 +14,7 @@
 
 <div class="container">
     <div class="controls">
-        <strong style="font-size:18px;">對戰組合：</strong>
+        <strong style="font-size:18px;">選擇打席：</strong>
         <select id="pitcherSelect">
             <!-- 預設先綁定山本由伸的 ID -->
             <option value="">載入全聯盟投手中...</option>
@@ -103,22 +98,46 @@
                     <div class="pitch-list" id="cfList" style="margin-top: 15px;"></div>
 
                     <!-- 雙引擎評估結果 -->
-                    <div class="metrics-container">
+                    <!-- === index.html 替換區塊 1 開始 === -->
+                    <!-- 6 類別賽局期望值結果 -->
+                    <div class="metrics-grid">
                         <div class="metric-card">
-                            <div class="metric-title">⚔️ 揮空/凍結引誘率 (CSW)</div>
+                            <div class="metric-title">👀 不揮棒 (Take)</div>
                             <div class="metric-comparison">
-                                <span class="val-original" id="origCSW" style="display:none;"></span>
-                                <span class="val-new val-improve" id="newCSW">--%</span>
+                                <span class="val-original" id="origTake" style="display:none;"></span>
+                                <span class="val-new" id="newTake">--%</span>
                             </div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-title">🛡️ 壓制防護率 (No Hard-Hit)</div>
+                            <div class="metric-title">💨 揮空 (Whiff)</div>
                             <div class="metric-comparison">
-                                <span class="val-original" id="origHH" style="display:none;"></span>
-                                <span class="val-new val-improve" id="newHH">--%</span>
+                                <span class="val-original" id="origWhiff" style="display:none;"></span>
+                                <span class="val-new" id="newWhiff">--%</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-title">🛑 界外 (Foul)</div>
+                            <div class="metric-comparison">
+                                <span class="val-original" id="origFoul" style="display:none;"></span>
+                                <span class="val-new" id="newFoul">--%</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-title">🏏 弱擊球 (Weak)</div>
+                            <div class="metric-comparison">
+                                <span class="val-original" id="origWeak" style="display:none;"></span>
+                                <span class="val-new" id="newWeak">--%</span>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-title">🚀 強擊球 (Hard)</div>
+                            <div class="metric-comparison">
+                                <span class="val-original" id="origHard" style="display:none;"></span>
+                                <span class="val-new" id="newHard">--%</span>
                             </div>
                         </div>
                     </div>
+                    <!-- === index.html 替換區塊 1 結束 === -->
                 </div>
             </div>
         </div>

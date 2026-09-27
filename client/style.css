@@ -274,83 +274,75 @@ select {
   max-width: 100%;
 }
 
-/* =========================================================
-   📱 手機版 RWD 終極修復 (專為自訂類別 .controls / .at-bat-view 打造)
-   ========================================================= */
-@media screen and (max-width: 768px) {
-  /* ---------------------------------------------------
-       1. 頂部選單修復 (.controls) - 「選擇打席」、投手、打者上下排列
-       --------------------------------------------------- */
-  .controls {
-    flex-direction: column !important;
-    align-items: stretch !important; /* 讓下拉選單填滿左右寬度 */
-    gap: 12px !important;
-    padding: 15px !important;
-  }
+/* === style.css 底部替換區塊 開始 === */
 
-  .controls strong {
-    text-align: left !important;
-    display: block !important;
-    margin-bottom: -5px !important; /* 縮小與下方選單的間距 */
-  }
+/* 5 宮格網格排版 (桌機版一排 5 格) */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px; /* 稍微縮小間距讓 5 個卡片放得下 */
+  margin-top: 20px;
+}
 
-  /* 覆蓋掉原本桌機版的 max-width: 350px 限制，讓它在手機上 100% 寬 */
-  .ts-wrapper,
-  .ts-control,
-  select {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
+/* 確保數值字體大小適合 5 宮格，避免字太大被擠壓 */
+.metrics-grid .val-new {
+  font-size: 18px;
+}
+.metrics-grid .val-original {
+  font-size: 14px;
+}
+.metrics-grid .metric-title {
+  font-size: 12px; /* 字體稍微調小以適應卡片寬度 */
+  margin-bottom: 5px;
+  white-space: nowrap; /* 防止標題換行 */
+}
+.metrics-grid .metric-card {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px;
+}
 
-  /* ---------------------------------------------------
-       2. 內容區塊修復 (.at-bat-view) - 九宮格在上，逐球紀錄在下
-       --------------------------------------------------- */
-  .at-bat-view {
-    flex-direction: column !important; /* 關鍵：強制改為上下堆疊 */
-    align-items: center !important;
-    gap: 25px !important;
-  }
+/* 彩色數據標籤 (用於連續配球結果) */
+.badge-container {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  margin-top: 6px;
+}
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: bold;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+}
+/* 🌟 新增 Take 標籤，並保留其他顏色 */
+.badge-take {
+  background: #7f8c8d;
+} /* 灰色 */
+.badge-whiff {
+  background: #27ae60;
+} /* 綠色 */
+.badge-foul {
+  background: #f39c12;
+} /* 橘色 */
+.badge-weak {
+  background: #8e44ad;
+} /* 紫色 */
+.badge-hard {
+  background: #c0392b;
+} /* 紅色 */
 
-  /* 讓右側的資訊區塊 (包含列表、控制項) 佔滿全寬，不要被壓縮 */
-  .at-bat-view > div {
-    width: 100% !important;
-  }
-
-  /* 九宮格容器強制置中 */
-  .pitch-plot-container {
-    margin: 0 auto !important;
-  }
-
-  /* ---------------------------------------------------
-       3. 實驗室操作控制列 (.lab-controls) - 按鈕與選單拉滿寬度
-       --------------------------------------------------- */
-  .lab-controls {
-    flex-direction: column !important;
-    align-items: stretch !important;
-  }
-
-  .control-group {
-    width: 100% !important;
-  }
-
-  .btn-simulate,
-  #btnSequence {
-    width: 100% !important; /* 讓「重新模擬打席」按鈕變大，方便手指點擊 */
-    margin-top: 5px !important;
-  }
-
-  /* ---------------------------------------------------
-       4. 期望值數據卡片 (.metrics-container) - 上下排列防破版
-       --------------------------------------------------- */
-  .metrics-container {
-    flex-direction: column !important; /* 將兩張卡片改為上下疊放 */
-    gap: 15px !important;
-  }
-
-  /* 微調卡片內部排版，讓標題跟數值更好看 */
-  .metric-card {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 8px !important;
+/* RWD 響應式設計：平板自動變成 3 欄，手機變成 2 欄 */
+@media (max-width: 950px) {
+  .metrics-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
+@media (max-width: 600px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+/* === style.css 底部替換區塊 結束 === */
