@@ -142,49 +142,24 @@ def build_20d_context(adv, b_count=0, s_count=0):
     advanced_stats = [norm_age, norm_z_swing, norm_z_miss, norm_oz_swing, norm_oz_miss, norm_meatball, norm_attack_angle]
     return ball_ohe + strike_ohe + pull_ohe + arm_ohe + advanced_stats
 
-print("正在載入 2026 年實戰數據庫 (雲端精簡版)...")
-ALL_ARSENALS = {} 
-try:
-    csv_path = os.path.join(BASE_DIR, 'mlb_pitch_data_2026_strictly_filtered_test.csv.gz')
-    
-    # 🌟 補回進階數據欄位，否則雲端算不出 Pull% 與 Arm Angle
-    use_cols = [
-        'game_pk', 'at_bat_number', 'pitch_number', 'pitcher', 'pitcher_name', 
-        'p_throws', 'pitch_type', 'release_speed', 'plate_x', 'plate_z_norm', 
-        'pfx_x', 'pfx_z', 'description', 'stand', 'batter_name', 'batter', 'launch_speed',
-        'balls', 'strikes', 'game_date',
-        'Pull%', 'player_age', 'z_swing_percent', 'z_swing_miss_percent', 
-        'oz_swing_percent', 'oz_swing_miss_percent', 'meatball_swing_percent',
-        'attack_angle', 'arm_angle'
-    ]
-    
-    df_2026 = pd.read_csv(csv_path, compression='gzip', usecols=use_cols)
-    
-    # 🌟 保留雲端記憶體瘦身法：只留指定球星
-    target_names = ['Yamamoto', 'Ohtani', 'Sasaki', 'Imanaga', 'Senga', 'Kikuchi', 'Skubal','sale','skenes']
-    name_pattern = '|'.join(target_names)
-    target_ids = [808967] 
-    
-    #  512MB RAM ：分塊讀取 (Chunking)
-    # 每次只讀取 10,000 筆資料進記憶體
-    chunk_iter = pd.read_csv(csv_path, compression='gzip', usecols=use_cols, chunksize=10000)
-    filtered_chunks = []
-    
-    for chunk in chunk_iter:
-        # 在每一小塊 (Chunk) 中立刻過濾目標球星，其他雜魚資料立刻丟棄
-        mini_chunk = chunk[
-            chunk['pitcher_name'].str.contains(name_pattern, case=False, na=False) | 
-            chunk['pitcher'].isin(target_ids)
-        ]
-        filtered_chunks.append(mini_chunk)
+    print("正在載入迷你版實戰數據庫...")
+    ALL_ARSENALS = {} 
+    try:
+    # 🌟 讀取您剛剛做好的迷你版檔案！
+        csv_path = os.path.join(BASE_DIR, 'mlb_mini_2026.csv.gz')
         
-    # 將過濾後的所有小積木組裝起來，成為最終的輕量級 DataFrame
-    df_2026 = pd.concat(filtered_chunks, ignore_index=True)
+        use_cols = [
+            'game_pk', 'at_bat_number', 'pitch_number', 'pitcher', 'pitcher_name', 
+            'p_throws', 'pitch_type', 'release_speed', 'plate_x', 'plate_z_norm', 
+            'pfx_x', 'pfx_z', 'description', 'stand', 'batter_name', 'batter', 'launch_speed',
+            'balls', 'strikes', 'game_date',
+            'Pull%', 'player_age', 'z_swing_percent', 'z_swing_miss_percent', 
+            'oz_swing_percent', 'oz_swing_miss_percent', 'meatball_swing_percent',
+            'attack_angle', 'arm_angle'
+        ]
     
-    # 強制清空緩存與垃圾回收，確保記憶體安全
-    del filtered_chunks
-    del chunk_iter
-    gc.collect()
+    # 🌟 因為已經是迷你版，直接一口氣讀進來，毫無記憶體壓力
+    df_2026 = pd.read_csv(csv_path, compression='gzip', usecols=use_cols)
 
     df_2026['zone_name'] = df_2026.apply(lambda x: get_zone_name(float(x['plate_x']), float(x['plate_z_norm'])), axis=1)
     
