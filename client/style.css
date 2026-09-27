@@ -334,15 +334,86 @@ select {
   background: #c0392b;
 } /* 紅色 */
 
-/* RWD 響應式設計：平板自動變成 3 欄，手機變成 2 欄 */
-@media (max-width: 950px) {
+/* =========================================================
+   📱 手機與平板 RWD 終極修復 (觸發寬度提早至 950px 防破版)
+   ========================================================= */
+@media screen and (max-width: 950px) {
+  /* ---------------------------------------------------
+       1. 頂部選單修復 - 投手與打者改為上下排列，並填滿寬度
+       --------------------------------------------------- */
+  .controls {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 15px !important;
+  }
+
+  .controls strong {
+    text-align: left !important;
+    display: block !important;
+    margin-bottom: -5px !important;
+  }
+
+  /* 解除桌機版的最低寬度限制，讓手機選單可以自然縮放 */
+  .ts-wrapper,
+  .ts-control,
+  select {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* ---------------------------------------------------
+       2. 內容區塊修復 - 強制「九宮格在上、數據在下」
+       --------------------------------------------------- */
+  .at-bat-view {
+    flex-direction: column !important; /* 🌟 拯救破版的關鍵：改為上下堆疊 */
+    align-items: center !important;
+    gap: 30px !important;
+  }
+
+  /* 讓右側的資訊區塊佔滿全寬 */
+  .at-bat-view > div {
+    width: 100% !important;
+  }
+
+  /* 九宮格容器強制置中 */
+  .pitch-plot-container {
+    margin: 0 auto !important;
+  }
+
+  /* ---------------------------------------------------
+       3. 實驗室操作控制列 - 按鈕與選單拉滿寬度
+       --------------------------------------------------- */
+  .lab-controls {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .control-group {
+    width: 100% !important;
+  }
+
+  .btn-simulate,
+  #btnSequence {
+    width: 100% !important;
+    margin-top: 10px !important;
+    padding: 12px !important; /* 加高按鈕，方便手機手指點擊 */
+  }
+
+  /* ---------------------------------------------------
+       4. 5宮格賽局結果在平板尺寸：一排 3 個
+       --------------------------------------------------- */
   .metrics-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, 1fr) !important;
   }
 }
-@media (max-width: 600px) {
+
+/* ---------------------------------------------------
+     5. 5宮格賽局結果在手機尺寸：一排 2 個
+     --------------------------------------------------- */
+@media screen and (max-width: 600px) {
   .metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
-/* === style.css 底部替換區塊 結束 === */
