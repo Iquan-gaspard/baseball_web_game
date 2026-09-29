@@ -244,6 +244,43 @@ def get_atbats(pitcher_id):
     atbats_list.sort(key=lambda x: x['label'])
     return jsonify(atbats_list)
 
+@app.route('/api/batters', methods=['GET'])
+def get_batters():
+    # 確保資料庫有載入 (這裡的 df 變數名稱請替換成您讀取 mlb_mini_2026.csv.gz 的 DataFrame 名稱，通常是 df_2026 或是 df)
+    if df_2026.empty: return jsonify([])
+    
+    # 抓出不重複的打者與其體檢特徵
+    unique_batters = df_2026.drop_duplicates(subset=['batter']).copy()
+    batters_list = []
+    
+    for _, row in unique_batters.iterrows():
+        stand = row.get('stand', 'R')
+        batter_name = row.get('batter_name', f"Batter {row.get('batter')}")
+        if pd.isna(batter_name) or batter_name == "Unknown": continue
+        
+        adv_stats = {
+            'pull_percent': float(row.get('Pull%', 0.40)),
+            'player_age': float(row.get('player_age', 28.0)),
+            'z_swing_percent': float(row.get('z_swing_percent', 65.0)),
+            'z_swing_miss_percent': float(row.get('z_swing_miss_percent', 15.0)),
+            'oz_swing_percent': float(row.get('oz_swing_percent', 30.0)),
+            'oz_swing_miss_percent': float(row.get('oz_swing_miss_percent', 45.0)),
+            'meatball_swing_percent': float(row.get('meatball_swing_percent', 75.0)),
+            'attack_angle': float(row.get('attack_angle', 8.0)),
+            'arm_angle': float(row.get('arm_angle', 38.6))
+        }
+        
+        batters_list.append({
+            "batter_id": int(row['batter']), 
+            "name": batter_name,
+            "stand": stand, 
+            "label": f"{batter_name} ({'左' if stand=='L' else '右'}打)",
+            "adv_stats": adv_stats
+        })
+        
+    batters_list.sort(key=lambda x: x['name'])
+    return jsonify(batters_list)
+
 @app.route('/api/simulate', methods=['POST'])
 def simulate_counterfactual():
     data = request.json
@@ -409,3 +446,4 @@ def simulate_sequence():
 if __name__ == '__main__':
     # 雲端正式機通常綁定 0.0.0.0 確保外部可以連線
     app.run(host='0.0.0.0', port=5000, debug=False)
+
