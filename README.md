@@ -1,3 +1,7 @@
+# baseball_sequence_analysis
+
+此為概念驗證（POC）舊版架構。本系統已全面重構為 Next.js 企業級微服務架構，請前往 https://github.com/Iquan-gaspard/mlb-counterfactual-nextjs 查看最新程式碼與 Live Demo。
+
 # ⚾ Pitching Counterfactual Lab | AI 棒球反事實配球實驗室
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white)
